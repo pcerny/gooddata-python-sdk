@@ -37,8 +37,8 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: true
           files: |
-              dist/*.whl
-              dist/*.tar.gz
+              gooddata-afm-client/dist/*.whl
+              gooddata-afm-client/dist/*.tar.gz
 #    - name: Publish package
 #      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
 #      with:
