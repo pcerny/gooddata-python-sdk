@@ -10,8 +10,14 @@
 
 from setuptools import setup, find_packages  # noqa: H301
 
+
+def _read_version():
+    with open("VERSION", "rt") as version_file:
+        return version_file.readline().strip()
+
+
 NAME = "gooddata-scan-client"
-VERSION = "1.0.0"
+VERSION = _read_version()
 # To install the library, run the following
 #
 # python setup.py install

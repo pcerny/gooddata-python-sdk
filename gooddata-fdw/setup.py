@@ -1,6 +1,9 @@
 from setuptools import find_packages, setup
 
-REQUIRES = ["gooddata-sdk==0.2"]
+REQUIRES = [
+    "gooddata-sdk>=0.1.0, <2.0.0",
+    "multicorn>=1.4.0",
+]
 
 
 def _read_version():

@@ -1,9 +1,9 @@
 from setuptools import find_packages, setup
 
 REQUIRES = [
-    "gooddata-afm-client>=1.0.0, <2.0.0",
-    "gooddata-metadata-client>=1.0.0, <2.0.0",
-    "gooddata-scan-client>=1.0.0, <2.0.0",
+    "gooddata-afm-client>=0.1.0, <2.0.0",
+    "gooddata-metadata-client>=0.1.0, <2.0.0",
+    "gooddata-scan-client>=0.1.0, <2.0.0",
 ]
 
 
