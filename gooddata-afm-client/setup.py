@@ -9,9 +9,11 @@
 
 
 from setuptools import setup, find_packages  # noqa: H301
+import os
 
 
 def _read_version():
+    print(os.getcwd())
     with open("VERSION", "rt") as version_file:
         return version_file.readline().strip()
 
