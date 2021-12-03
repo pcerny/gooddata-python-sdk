@@ -13,7 +13,7 @@ import os
 
 
 def _read_version():
-    print(os.getcwd())
+    print("cwd is {}".format(os.getcwd()))
     with open("VERSION", "rt") as version_file:
         return version_file.readline().strip()
 
