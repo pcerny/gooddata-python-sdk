@@ -17,7 +17,7 @@ def _read_version():
 
 
 NAME = "gooddata-afm-client"
-VERSION = read_version()
+VERSION = _read_version()
 # To install the library, run the following
 #
 # python setup.py install
