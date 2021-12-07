@@ -9,17 +9,9 @@
 
 
 from setuptools import setup, find_packages  # noqa: H301
-import os
-
-
-def _read_version():
-    print("cwd is {}".format(os.getcwd()))
-    with open("VERSION", "rt") as version_file:
-        return version_file.readline().strip()
-
 
 NAME = "gooddata-afm-client"
-VERSION = _read_version()
+VERSION = "1.0.0"
 # To install the library, run the following
 #
 # python setup.py install

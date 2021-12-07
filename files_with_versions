@@ -1,0 +1,8 @@
+gooddata-fdw/gooddata_fdw/fdw.py
+gooddata-fdw/docs/conf.py
+gooddata-pandas/gooddata_pandas/good_pandas.py
+gooddata-sdk/gooddata_sdk/client.py
+gooddata-sdk/docs/conf.py
+gooddata-scan-client/gooddata_scan_client/__init__.py
+gooddata-afm-client/gooddata_afm_client/__init__.py
+gooddata-metadata-client/gooddata_metadata_client/__init__.py
