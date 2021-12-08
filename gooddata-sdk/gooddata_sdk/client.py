@@ -5,7 +5,7 @@ import gooddata_afm_client as afm_client
 import gooddata_metadata_client as metadata_client
 import gooddata_scan_client as scan_client
 
-USER_AGENT = "gooddata-python-sdk/0.3.0"
+USER_AGENT = "gooddata-python-sdk/0.3.1"
 
 
 class GoodDataApiClient:
