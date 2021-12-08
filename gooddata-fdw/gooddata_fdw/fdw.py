@@ -12,7 +12,7 @@ from gooddata_sdk.catalog import Catalog
 from gooddata_sdk.compute_model import ObjId
 from gooddata_sdk.insight import InsightMetric
 
-_USER_AGENT = "gooddata-fdw/0.1"
+_USER_AGENT = "gooddata-fdw/0.3.3"
 """
 Extra segment of the User-Agent header that will be appended to standard gooddata-sdk user agent.
 """
