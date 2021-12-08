@@ -9,7 +9,7 @@ from gooddata_pandas.series import SeriesFactory
 from gooddata_sdk import GoodDataSdk
 from gooddata_sdk import client as sdk_client
 
-_USER_AGENT = "gooddata-pandas/0.3.1"
+_USER_AGENT = "gooddata-pandas/0.3.2"
 
 
 class GoodPandas:

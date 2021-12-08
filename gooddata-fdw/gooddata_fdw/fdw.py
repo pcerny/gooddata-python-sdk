@@ -9,7 +9,7 @@ from gooddata_fdw.logging import _log_debug, _log_error, _log_info
 from gooddata_fdw.naming import DefaultCatalogNamingStrategy, DefaultInsightColumnNaming, DefaultInsightTableNaming
 from gooddata_sdk.compute_model import ObjId
 
-_USER_AGENT = "gooddata-fdw/0.3.1"
+_USER_AGENT = "gooddata-fdw/0.3.2"
 """
 Extra segment of the User-Agent header that will be appended to standard gooddata-sdk user agent.
 """
