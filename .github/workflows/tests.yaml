@@ -84,18 +84,24 @@ jobs:
           pip install -r dev-requirements.txt
       - name: Install clients
         run: |
-            python gooddata-scan-client/setup.py install
-            python gooddata-metadata-client/setup.py install
-            python gooddata-afm-client/setup.py install
-      - name: Docs check
-        run: |
-            #make docs
             cd gooddata-scan-client
             python setup.py install
             cd ../gooddata-metadata-client
             python setup.py install
             cd ../gooddata-afm-client
             python setup.py install
+      - name: Build sdk docs
+      - run: |
             cd ../gooddata-sdk
+            python setup.py install
+            sphinx-build -W -b html docs docs/build/html
+      - name: Build pandas docs
+      - run: |
+            cd ../gooddata-pandas
+            python setup.py install
+            sphinx-build -W -b html docs docs/build/html
+      - name: Build fdw docs
+      - run: |
+            cd ../gooddata-fdw
             python setup.py install
             sphinx-build -W -b html docs docs/build/html
