@@ -85,6 +85,8 @@ jobs:
       - name: Docs check
         run: |
             #make docs
-            cd gooddata-sdk
+            cd gooddata-scan-client
+            python setup.py install
+            cd ../gooddata-sdk
             python setup.py install
             sphinx-build -W -b html docs docs/build/html
