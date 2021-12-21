@@ -89,7 +89,7 @@ jobs:
             python setup.py install
             cd ../gooddata-metadata-client
             python setup.py install
-            cd ../gooddata-metadata-client
+            cd ../gooddata-afm-client
             python setup.py install
             cd ../gooddata-sdk
             python setup.py install
