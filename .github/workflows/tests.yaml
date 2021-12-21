@@ -89,5 +89,5 @@ jobs:
             python gooddata-afm-client/setup.py install
       - name: Docs check
         run: |
-            python setup.py install
+            python gooddata-sdk/setup.py install
             sphinx-build -W -b html gooddata-sdk/docs gooddata-sdk/docs/build/html
