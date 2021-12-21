@@ -55,4 +55,4 @@ test-ci:
 
 .PHONY: docs
 docs:
-	sphinx-build -W -b html docs docs/_build/html
+	pwd; ls -R; sphinx-build -W -vv -b html docs docs/_build/html
