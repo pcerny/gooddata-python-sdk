@@ -91,17 +91,17 @@ jobs:
             cd ../gooddata-afm-client
             python setup.py install
       - name: Build sdk docs
-      - run: |
+        run: |
             cd ../gooddata-sdk
             python setup.py install
             sphinx-build -W -b html docs docs/build/html
       - name: Build pandas docs
-      - run: |
+        run: |
             cd ../gooddata-pandas
             python setup.py install
             sphinx-build -W -b html docs docs/build/html
       - name: Build fdw docs
-      - run: |
+        run: |
             cd ../gooddata-fdw
             python setup.py install
             sphinx-build -W -b html docs docs/build/html
