@@ -89,10 +89,6 @@ jobs:
             python gooddata-afm-client/setup.py install
       - name: Docs check
         run: |
-            cd gooddata-sdk
-            python setup.py install
-            sphinx-build -W -b html docs docs/build/html
-        run: |
             #make docs
             cd gooddata-scan-client
             python setup.py install
