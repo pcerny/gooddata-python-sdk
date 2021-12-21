@@ -82,7 +82,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r docs-requirements.txt
-          ls -R
       - name: Docs check
         run: |
-          make docs
+            #make docs
+            sphinx-build -W -b html gooddata-sdk/docs gooddata-sdk/docs/build/html
