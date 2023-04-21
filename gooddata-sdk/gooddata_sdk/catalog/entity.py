@@ -2,16 +2,32 @@
 from __future__ import annotations
 
 import base64
+import typing
+from enum import Enum
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional, Type, TypeVar
+from typing import Any, ClassVar, Dict, ForwardRef, Generic, List, Optional, Type, TypeVar, Union
 
 import attr
+import cattrs
+from cattrs import structure
+from cattrs.gen import make_dict_unstructure_fn, override
 
+from gooddata_api_client.model.json_api_attribute_out import JsonApiAttributeOut
+from gooddata_api_client.model.json_api_attribute_out_document import JsonApiAttributeOutDocument
+from gooddata_api_client.model.json_api_dataset_out import JsonApiDatasetOut
+from gooddata_api_client.model.json_api_label_out import JsonApiLabelOut
 from gooddata_sdk.catalog.base import Base, JsonApiEntityBase
 from gooddata_sdk.compute.model.base import ObjId
 from gooddata_sdk.utils import AllPagedEntities
 
 T = TypeVar("T", bound="AttrCatalogEntity")
+
+T2 = TypeVar("T2", bound="AttrCatalogEntity2")
+A = TypeVar("A", bound="Attributes")
+R = TypeVar("R", bound="Relationships")
+INC = TypeVar("INC")
+SL = TypeVar("SL")
+D = TypeVar("D", bound="AttrCatalogEntityDocument")
 
 
 @attr.s(auto_attribs=True)
@@ -81,6 +97,317 @@ class AttrCatalogEntity:
     @staticmethod
     def client_class() -> Any:
         return NotImplemented
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class Attributes:
+    description: Optional[str] = attr.field(default=None)
+    tags: Optional[List[str]] = attr.field(default=None)
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class TitledAttributes(Attributes):
+    title: str
+
+
+@attr.s(auto_attribs=True)
+class EntityLink:
+    id: str
+    type: str
+
+    @staticmethod
+    def structure_hook(data: Any, cls_type: Type[Any]) -> Any:
+        entity_data = data.get("data", None)
+        if entity_data is None:
+            raise ValueError(f"Missing enclosing data key for ${cls_type}")
+        return EntityLink(id=entity_data["id"], type=entity_data["type"])
+
+    @staticmethod
+    def unstructure_hook(obj: Any) -> Any:
+        if obj is None:
+            return None
+        if not isinstance(obj, EntityLink):
+            raise ValueError("Only EntityLink unstructure supported")
+        return dict(data=dict(id=obj.id, type=obj.type))
+
+
+class EntityLinkList(List[EntityLink]):
+    @staticmethod
+    def structure_hook(data: Any, cls_type: Type[Any]) -> Any:
+        entity_data = data.get("data", None)
+        if entity_data is None:
+            raise ValueError(f"Missing enclosing data key for ${cls_type}")
+        return [EntityLink(id=value["id"], type=value["type"]) for value in entity_data]
+
+    @staticmethod
+    def unstructure_hook(obj: Any) -> Any:
+        if obj is None:
+            return None
+        if not isinstance(obj, List):
+            raise ValueError("Only EntityLinkList unstructure supported")
+        return dict(data=[dict(id=obj_item.id, type=obj_item.type) for obj_item in obj])
+
+
+# TODO: do not use global converter - create custom one for the library purposes
+cattrs.register_structure_hook(EntityLink, EntityLink.structure_hook)
+cattrs.register_unstructure_hook(EntityLink, EntityLink.unstructure_hook)
+cattrs.register_structure_hook(EntityLinkList, EntityLinkList.structure_hook)
+cattrs.register_unstructure_hook(EntityLinkList, EntityLinkList.unstructure_hook)
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class Relationships:
+    pass
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class AttributeRelationships(Relationships):
+    dataset: Optional[EntityLink] = attr.field(default=None)
+    defaultView: Optional[EntityLink] = attr.field(default=None)
+    labels: Optional[EntityLinkList] = attr.field(default=None)
+
+
+class OriginType(Enum):
+    NATIVE = "NATIVE"
+    PARENT = "PARENT"
+
+
+@attr.s(auto_attribs=True)
+class MetaOrigin:
+    originId: str
+    originType: OriginType
+
+
+@attr.s(auto_attribs=True)
+class Meta:
+    origin: Optional[MetaOrigin]
+
+
+@attr.s(auto_attribs=True)
+class ObjectLink:
+    self_key: str
+
+    @staticmethod
+    def structure_hook(data: Any, _cls_type: Type[Any]) -> Any:
+        entity_data = data.get("self", None)
+        if entity_data is None:
+            raise ValueError("Missing self key in ObjectLink")
+        return ObjectLink(self_key=entity_data)
+
+
+cattrs.register_structure_hook(ObjectLink, ObjectLink.structure_hook)
+
+
+@attr.s(auto_attribs=True)
+class NextLink:
+    self_key: str
+    next: Optional[str] = attr.field(default=None)
+
+    @staticmethod
+    def structure_hook(data: Any, _cls_type: Type[Any]) -> Any:
+        entity_data = data.get("self", None)
+        if entity_data is None:
+            raise ValueError("Missing self key in ObjectLink")
+        return NextLink(self_key=entity_data, next=data.get("next", None))
+
+
+cattrs.register_structure_hook(NextLink, NextLink.structure_hook)
+
+
+class AttributeIncludedType(List[Union["CatalogLabel", "CatalogDataset"]]):
+    ...
+    # @staticmethod
+    # def structure_hook(data: Any, _cls_type: Type[Any]) -> Any:
+    #     return structure(data, List[Union[CatalogLabel, CatalogDataset]])
+
+
+# cattrs.register_structure_hook(AttributeIncludedType, AttributeIncludedType.structure_hook)
+# cattrs.register_structure_hook(AttributeIncludedType, AttrCatalogEntity2.structure_hook_for_union)
+
+
+@attr.s(auto_attribs=True)
+class AttrCatalogEntityDocument(Generic[INC]):
+    links: Optional[NextLink] = attr.field(default=None)
+    included: Optional[INC] = attr.field(default=None)
+
+    @staticmethod
+    def client_class() -> Any:
+        return NotImplemented
+
+
+@attr.s(auto_attribs=True)
+class AttrCatalogEntity2(Generic[A, R, D]):
+    id: str
+    attributes: A
+
+    type: str = attr.field(default=attr.Factory(lambda self: self._get_type(), takes_self=True))
+
+    relationships: Optional[R] = attr.field(repr=False, default=None)
+    meta: Optional[Meta] = attr.field(repr=False, default=None)
+    links: Optional[ObjectLink] = attr.field(repr=False, default=None)
+
+    # included: Optional[INC] = attr.field(repr=False, default=None, metadata={"to_api": False})
+    _document: Optional[D] = attr.field(init=False, repr=False, default=None)
+
+    @classmethod
+    def data_only_converter(cls):
+        c = cattrs.Converter()
+        omit_hook = make_dict_unstructure_fn(AttrCatalogEntity2, c, _document=override(omit=True))
+        c.register_unstructure_hook(AttrCatalogEntity2, omit_hook)
+        c.register_unstructure_hook(EntityLink, EntityLink.unstructure_hook)
+        c.register_unstructure_hook(EntityLinkList, EntityLinkList.unstructure_hook)
+        c.register_unstructure_hook(Optional[EntityLinkList], EntityLinkList.unstructure_hook)
+
+        return c
+
+    @staticmethod
+    def client_class() -> Any:
+        return NotImplemented
+
+    @classmethod
+    def _get_type(cls) -> str:
+        allowed_values = getattr(cls.client_class(), "allowed_values")
+        if allowed_values:
+            values = list(allowed_values.get(("type",), {}).values())
+            if len(values) > 0:
+                return values[0]
+        raise ValueError(f"Unable to extract type from ${cls.client_class().__name__}")
+
+    @classmethod
+    def structure_hook_for_union(cls, data: Any, cls_type: Type[Any]) -> Any:
+        # py37 get_origin - getattr(cls, "__origin__", None)
+        # py37 get_args - cls.__args__
+        type_field = data.get("type", None)
+        if type_field is None:
+            raise ValueError("Data are missing type key")
+
+        origin = typing.get_origin(cls_type)
+        args = typing.get_args(cls_type)
+        if origin != typing.Union:
+            raise ValueError("Class type origin must be Union")
+        if len(args) == 0:
+            raise ValueError("Union type must enclose at least one type")
+        type_to_args = {}
+        for arg in args:
+            klass = arg
+            if isinstance(arg, ForwardRef):
+                if not arg.__forward_evaluated__:
+                    # noinspection PyProtectedMember
+                    typing._eval_type(arg, globals(), locals())
+                klass = arg.__forward_value__
+            if not hasattr(klass, "_get_type"):
+                raise ValueError(f"Unable to find _get_type method for class ${klass}")
+            klass_type = klass._get_type()
+            type_to_args[klass_type] = klass
+
+        final_klass = type_to_args.get(type_field, None)
+        if final_klass is None:
+            raise ValueError(
+                f"Unable to match type ${type_field} to any of Union argument types ${type_to_args.keys()}"
+            )
+
+        return structure(data, final_klass)
+
+    @classmethod
+    def from_api(cls: Type[T2], entity: Dict[str, Any]) -> T2:
+        """
+        Creates GoodData object from AttrCatalogEntityJsonApi.
+        """
+        data = entity.get("data", None)
+        if not data:
+            raise ValueError(f'Missing top-level key "data" in entity ${entity}')
+        instance = structure(data, cls)
+        # TODO: how to get around this call? Verify on py3.7
+        origs = getattr(cls, "__orig_bases__", None)
+        if origs is None or len(origs) < 1:
+            raise ValueError(f"Unable to resolve Document type for ${cls}")
+        # take 3rd TypeVar argument instance
+        doc_cls = typing.get_args(origs[0])[2]
+        print(doc_cls)
+        instance._document = structure(entity, doc_cls)
+        return instance
+
+    @classmethod
+    def from_dict(cls: Type[T], data: Dict[str, Any], camel_case: bool = True) -> T:
+        """
+        Creates object from dictionary. It needs to be specified if the dictionary is in camelCase or snake_case.
+        """
+        client_object = data
+        if camel_case:
+            client_object = cls.client_class().from_dict(data, camel_case)
+        return cls.from_api(client_object)
+
+    @staticmethod
+    def _is_attribute_private(attribute: attr.Attribute) -> bool:
+        return attribute.name.startswith("_")
+
+    def _get_snake_dict(self) -> Dict[str, Any]:
+        conv = self.data_only_converter()
+        data_dict = conv.unstructure(self)
+        print(data_dict)
+        doc_dict = conv.unstructure(self._document)
+        doc_dict["data"] = data_dict
+        return doc_dict
+
+    def to_dict(self, camel_case: bool = True) -> Dict[str, Any]:
+        # This branch does not have to exist, but in case of camel_case=False it can perform fewer calls
+        if not camel_case:
+            return self._get_snake_dict()
+        return self.to_api().to_dict(camel_case)
+
+    def to_api(self) -> Any:
+        dictionary = self._get_snake_dict()
+        return self._document.client_class().from_dict(dictionary, camel_case=False)
+
+    @property
+    def obj_id(self) -> ObjId:
+        return ObjId(self.id, type=self.type)
+
+
+cattrs.register_structure_hook(Union["CatalogLabel", "CatalogDataset"], AttrCatalogEntity2.structure_hook_for_union)
+
+
+class CatalogAttributeDocument(AttrCatalogEntityDocument[List[Union["CatalogLabel", "CatalogDataset"]]]):
+    #    side_loads: Optional[SL] = attr.field(repr=False, default=None)
+    @staticmethod
+    def client_class() -> Any:
+        return JsonApiAttributeOutDocument
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class CatalogAttribute(
+    AttrCatalogEntity2[TitledAttributes, AttributeRelationships, CatalogAttributeDocument]
+    #    AttrCatalogEntity2[TitledAttributes, AttributeRelationships, List[Union["CatalogLabel", "CatalogDataset"]]]
+):
+    @staticmethod
+    def client_class() -> Any:
+        return JsonApiAttributeOut
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class LabelRelationships(Relationships):
+    attribute: Optional[EntityLink] = attr.field(default=None)
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class CatalogLabel(AttrCatalogEntity2[TitledAttributes, LabelRelationships, List["CatalogAttribute"]]):
+    @staticmethod
+    def client_class() -> Any:
+        return JsonApiLabelOut
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class DatasetRelationships(Relationships):
+    attributes: Optional[EntityLinkList] = attr.field(default=None)
+    facts: Optional[EntityLinkList] = attr.field(default=None)
+    references: Optional[EntityLinkList] = attr.field(default=None)
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class CatalogDataset(AttrCatalogEntity2[TitledAttributes, DatasetRelationships, List["CatalogDataset"]]):
+    @staticmethod
+    def client_class() -> Any:
+        return JsonApiDatasetOut
 
 
 class CatalogEntity:

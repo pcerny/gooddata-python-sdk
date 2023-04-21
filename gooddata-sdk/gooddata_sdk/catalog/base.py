@@ -76,13 +76,15 @@ class Base:
 class JsonApiEntityBase:
     id: str
     type: str
-    attributes: Dict[str, Any] = attr.field(repr=False)
-    relationships: Optional[Dict[str, Any]] = attr.field(repr=False, default=None)
-    meta: Optional[Dict[str, Any]] = attr.field(repr=False, default=None)
-    links: Optional[Dict[str, Any]] = attr.field(repr=False, default=None)
-    related_entities_data: List[Dict[str, Any]] = attr.field(repr=False, default=list)
-    related_entities_side_loads: List[Dict[str, Any]] = attr.field(repr=False, default=list)
-    side_loads: List[Dict[str, Any]] = attr.field(repr=False, default=list)
+
+    _attributes: Dict[str, Any] = attr.field(repr=False)
+
+    _relationships: Optional[Dict[str, Any]] = attr.field(repr=False, default=None)
+    _meta: Optional[Dict[str, Any]] = attr.field(repr=False, default=None)
+    _links: Optional[Dict[str, Any]] = attr.field(repr=False, default=None)
+    _related_entities_data: List[Dict[str, Any]] = attr.field(repr=False, default=list)
+    _related_entities_side_loads: List[Dict[str, Any]] = attr.field(repr=False, default=list)
+    _side_loads: List[Dict[str, Any]] = attr.field(repr=False, default=list)
 
     @classmethod
     def from_api(
@@ -98,6 +100,34 @@ class JsonApiEntityBase:
         entity["related_entities_data"] = related_entities.data if related_entities else []
         entity["related_entities_side_loads"] = related_entities.included if related_entities else []
         return structure(entity, cls)
+
+    @property
+    def attributes(self) -> Dict[str, Any]:
+        return self._attributes
+
+    @property
+    def relationships(self) -> Optional[Dict[str, Any]]:
+        return self._relationships
+
+    @property
+    def meta(self) -> Optional[Dict[str, Any]]:
+        return self._meta
+
+    @property
+    def links(self) -> Optional[Dict[str, Any]]:
+        return self._links
+
+    @property
+    def related_entities_data(self) -> List[Dict[str, Any]]:
+        return self._related_entities_data
+
+    @property
+    def related_entities_side_loads(self) -> List[Dict[str, Any]]:
+        return self._related_entities_side_loads
+
+    @property
+    def side_loads(self) -> List[Dict[str, Any]]:
+        return self._side_loads
 
     @classmethod
     def from_dict(cls) -> T:
