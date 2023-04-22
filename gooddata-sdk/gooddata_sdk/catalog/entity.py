@@ -9,7 +9,6 @@ from typing import Any, ClassVar, Dict, ForwardRef, Generic, List, Optional, Typ
 
 import attr
 import cattrs
-from cattrs import structure
 from cattrs.gen import make_dict_unstructure_fn, override
 
 from gooddata_api_client.model.json_api_attribute_out import JsonApiAttributeOut
@@ -110,6 +109,11 @@ class TitledAttributes(Attributes):
     title: str
 
 
+@attr.s(auto_attribs=True, kw_only=True)
+class DatasetAttributes(TitledAttributes):
+    type: str
+
+
 @attr.s(auto_attribs=True)
 class EntityLink:
     id: str
@@ -148,13 +152,6 @@ class EntityLinkList(List[EntityLink]):
         return dict(data=[dict(id=obj_item.id, type=obj_item.type) for obj_item in obj])
 
 
-# TODO: do not use global converter - create custom one for the library purposes
-cattrs.register_structure_hook(EntityLink, EntityLink.structure_hook)
-cattrs.register_unstructure_hook(EntityLink, EntityLink.unstructure_hook)
-cattrs.register_structure_hook(EntityLinkList, EntityLinkList.structure_hook)
-cattrs.register_unstructure_hook(EntityLinkList, EntityLinkList.unstructure_hook)
-
-
 @attr.s(auto_attribs=True, kw_only=True)
 class Relationships:
     pass
@@ -163,7 +160,7 @@ class Relationships:
 @attr.s(auto_attribs=True, kw_only=True)
 class AttributeRelationships(Relationships):
     dataset: Optional[EntityLink] = attr.field(default=None)
-    defaultView: Optional[EntityLink] = attr.field(default=None)
+    default_view: Optional[EntityLink] = attr.field(default=None)
     labels: Optional[EntityLinkList] = attr.field(default=None)
 
 
@@ -174,8 +171,8 @@ class OriginType(Enum):
 
 @attr.s(auto_attribs=True)
 class MetaOrigin:
-    originId: str
-    originType: OriginType
+    origin_id: str
+    origin_type: OriginType
 
 
 @attr.s(auto_attribs=True)
@@ -188,14 +185,30 @@ class ObjectLink:
     self_key: str
 
     @staticmethod
-    def structure_hook(data: Any, _cls_type: Type[Any]) -> Any:
+    def structure_hook_user(data: Any, _cls_type: Type[Any]) -> Any:
         entity_data = data.get("self", None)
         if entity_data is None:
             raise ValueError("Missing self key in ObjectLink")
         return ObjectLink(self_key=entity_data)
 
+    @staticmethod
+    def structure_hook_oapi(data: Any, _cls_type: Type[Any]) -> Any:
+        entity_data = data.get("_self", None)
+        if entity_data is None:
+            raise ValueError("Missing self key in ObjectLink")
+        return ObjectLink(self_key=entity_data)
 
-cattrs.register_structure_hook(ObjectLink, ObjectLink.structure_hook)
+    @staticmethod
+    def unstructure_hook_user(obj: Any) -> Any:
+        if not isinstance(obj, ObjectLink):
+            raise ValueError("Only ObjectLink unstructure supported")
+        return dict(self=obj.self_key)
+
+    @staticmethod
+    def unstructure_hook_oapi(obj: Any) -> Any:
+        if not isinstance(obj, ObjectLink):
+            raise ValueError("Only ObjectLink unstructure supported")
+        return dict(_self=obj.self_key)
 
 
 @attr.s(auto_attribs=True)
@@ -204,14 +217,36 @@ class NextLink:
     next: Optional[str] = attr.field(default=None)
 
     @staticmethod
-    def structure_hook(data: Any, _cls_type: Type[Any]) -> Any:
+    def structure_hook_user(data: Any, _cls_type: Type[Any]) -> Any:
         entity_data = data.get("self", None)
         if entity_data is None:
             raise ValueError("Missing self key in ObjectLink")
         return NextLink(self_key=entity_data, next=data.get("next", None))
 
+    @staticmethod
+    def structure_hook_oapi(data: Any, _cls_type: Type[Any]) -> Any:
+        entity_data = data.get("_self", None)
+        if entity_data is None:
+            raise ValueError("Missing self key in ObjectLink")
+        return NextLink(self_key=entity_data, next=data.get("next", None))
 
-cattrs.register_structure_hook(NextLink, NextLink.structure_hook)
+    @staticmethod
+    def unstructure_hook_user(obj: Any) -> Any:
+        if not isinstance(obj, NextLink):
+            raise ValueError("Only NextLink unstructure supported")
+        if next is not None:
+            return dict(self=obj.self_key, next=obj.next)
+        else:
+            return dict(self=obj.self_key)
+
+    @staticmethod
+    def unstructure_hook_oapi(obj: Any) -> Any:
+        if not isinstance(obj, NextLink):
+            raise ValueError("Only NextLink unstructure supported")
+        if next is not None:
+            return dict(_self=obj.self_key, next=obj.next)
+        else:
+            return dict(_self=obj.self_key)
 
 
 class AttributeIncludedType(List[Union["CatalogLabel", "CatalogDataset"]]):
@@ -250,14 +285,33 @@ class AttrCatalogEntity2(Generic[A, R, D]):
     _document: Optional[D] = attr.field(init=False, repr=False, default=None)
 
     @classmethod
-    def data_only_converter(cls):
+    def data_only_converter(cls, oapi_compatible: bool) -> cattrs.Converter:
         c = cattrs.Converter()
         omit_hook = make_dict_unstructure_fn(AttrCatalogEntity2, c, _document=override(omit=True))
         c.register_unstructure_hook(AttrCatalogEntity2, omit_hook)
         c.register_unstructure_hook(EntityLink, EntityLink.unstructure_hook)
         c.register_unstructure_hook(EntityLinkList, EntityLinkList.unstructure_hook)
         c.register_unstructure_hook(Optional[EntityLinkList], EntityLinkList.unstructure_hook)
+        if oapi_compatible:
+            c.register_unstructure_hook(ObjectLink, ObjectLink.unstructure_hook_oapi)
+            c.register_unstructure_hook(NextLink, NextLink.unstructure_hook_oapi)
+        else:
+            c.register_unstructure_hook(ObjectLink, ObjectLink.unstructure_hook_user)
+            c.register_unstructure_hook(NextLink, NextLink.unstructure_hook_user)
 
+        return c
+
+    @classmethod
+    def structure_converter(cls, oapi_compatible: bool) -> cattrs.Converter:
+        c = cattrs.GenConverter()
+        c.register_structure_hook(EntityLink, EntityLink.structure_hook)
+        c.register_structure_hook(EntityLinkList, EntityLinkList.structure_hook)
+        if oapi_compatible:
+            c.register_structure_hook(ObjectLink, ObjectLink.structure_hook_oapi)
+            c.register_structure_hook(NextLink, NextLink.structure_hook_oapi)
+        else:
+            c.register_structure_hook(ObjectLink, ObjectLink.structure_hook_user)
+            c.register_structure_hook(NextLink, NextLink.structure_hook_user)
         return c
 
     @staticmethod
@@ -274,7 +328,7 @@ class AttrCatalogEntity2(Generic[A, R, D]):
         raise ValueError(f"Unable to extract type from ${cls.client_class().__name__}")
 
     @classmethod
-    def structure_hook_for_union(cls, data: Any, cls_type: Type[Any]) -> Any:
+    def structure_hook_for_union(cls, c: cattrs.Converter, data: Any, cls_type: Type[Any]) -> Any:
         # py37 get_origin - getattr(cls, "__origin__", None)
         # py37 get_args - cls.__args__
         type_field = data.get("type", None)
@@ -306,17 +360,18 @@ class AttrCatalogEntity2(Generic[A, R, D]):
                 f"Unable to match type ${type_field} to any of Union argument types ${type_to_args.keys()}"
             )
 
-        return structure(data, final_klass)
+        return c.structure(data, final_klass)
 
     @classmethod
-    def from_api(cls: Type[T2], entity: Dict[str, Any]) -> T2:
+    def from_api(cls: Type[T2], entity: Dict[str, Any], oapi_compatible: bool = True) -> T2:
         """
         Creates GoodData object from AttrCatalogEntityJsonApi.
         """
         data = entity.get("data", None)
         if not data:
             raise ValueError(f'Missing top-level key "data" in entity ${entity}')
-        instance = structure(data, cls)
+        c = cls.structure_converter(oapi_compatible)
+        instance = c.structure(data, cls)
         # TODO: how to get around this call? Verify on py3.7
         origs = getattr(cls, "__orig_bases__", None)
         if origs is None or len(origs) < 1:
@@ -324,39 +379,40 @@ class AttrCatalogEntity2(Generic[A, R, D]):
         # take 3rd TypeVar argument instance
         doc_cls = typing.get_args(origs[0])[2]
         print(doc_cls)
-        instance._document = structure(entity, doc_cls)
+        instance._document = c.structure(entity, doc_cls)
         return instance
 
     @classmethod
-    def from_dict(cls: Type[T], data: Dict[str, Any], camel_case: bool = True) -> T:
+    def from_dict(cls: Type[T2], data: Dict[str, Any], camel_case: bool = True) -> T2:
         """
         Creates object from dictionary. It needs to be specified if the dictionary is in camelCase or snake_case.
         """
         client_object = data
         if camel_case:
+            # OAPI library expects self key with camel_case=True
             client_object = cls.client_class().from_dict(data, camel_case)
-        return cls.from_api(client_object)
+        return cls.from_api(client_object, False)
 
     @staticmethod
     def _is_attribute_private(attribute: attr.Attribute) -> bool:
         return attribute.name.startswith("_")
 
-    def _get_snake_dict(self) -> Dict[str, Any]:
-        conv = self.data_only_converter()
+    def _get_snake_dict(self, oapi_compatible: bool) -> Dict[str, Any]:
+        conv = self.data_only_converter(oapi_compatible)
         data_dict = conv.unstructure(self)
-        print(data_dict)
         doc_dict = conv.unstructure(self._document)
         doc_dict["data"] = data_dict
         return doc_dict
 
     def to_dict(self, camel_case: bool = True) -> Dict[str, Any]:
-        # This branch does not have to exist, but in case of camel_case=False it can perform fewer calls
         if not camel_case:
-            return self._get_snake_dict()
+            # this branch is crucial for self keys
+            # OAPI client represents self key in snake_case as _self -> make sure, user gets self even for snake_case
+            return self._get_snake_dict(False)
         return self.to_api().to_dict(camel_case)
 
     def to_api(self) -> Any:
-        dictionary = self._get_snake_dict()
+        dictionary = self._get_snake_dict(True)
         return self._document.client_class().from_dict(dictionary, camel_case=False)
 
     @property
@@ -364,14 +420,18 @@ class AttrCatalogEntity2(Generic[A, R, D]):
         return ObjId(self.id, type=self.type)
 
 
-cattrs.register_structure_hook(Union["CatalogLabel", "CatalogDataset"], AttrCatalogEntity2.structure_hook_for_union)
-
-
 class CatalogAttributeDocument(AttrCatalogEntityDocument[List[Union["CatalogLabel", "CatalogDataset"]]]):
     #    side_loads: Optional[SL] = attr.field(repr=False, default=None)
     @staticmethod
     def client_class() -> Any:
         return JsonApiAttributeOutDocument
+
+    @classmethod
+    def structure_converter(cls, c: cattrs.Converter) -> None:
+        c.register_structure_hook(
+            Union["CatalogLabel", "CatalogDataset"],
+            lambda data, cls_type: AttrCatalogEntity2.structure_hook_for_union(c, data, cls_type),
+        )
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -382,6 +442,12 @@ class CatalogAttribute(
     @staticmethod
     def client_class() -> Any:
         return JsonApiAttributeOut
+
+    @classmethod
+    def structure_converter(cls, oapi_compatible: bool) -> cattrs.Converter:
+        c = super().structure_converter(oapi_compatible)
+        CatalogAttributeDocument.structure_converter(c)
+        return c
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -404,7 +470,7 @@ class DatasetRelationships(Relationships):
 
 
 @attr.s(auto_attribs=True, kw_only=True)
-class CatalogDataset(AttrCatalogEntity2[TitledAttributes, DatasetRelationships, List["CatalogDataset"]]):
+class CatalogDataset(AttrCatalogEntity2[DatasetAttributes, DatasetRelationships, List["CatalogDataset"]]):
     @staticmethod
     def client_class() -> Any:
         return JsonApiDatasetOut

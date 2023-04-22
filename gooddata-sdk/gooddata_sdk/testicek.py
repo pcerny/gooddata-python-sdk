@@ -6,21 +6,21 @@ ca_from_api = CatalogAttribute.from_api(
         "data": {
             "type": "attribute",
             "id": "id1",
-            "meta": {"origin": {"originType": "NATIVE", "originId": "string"}},
+            "meta": {"origin": {"origin_type": "NATIVE", "origin_id": "string"}},
             "attributes": {
                 "title": "myAttr",
                 "description": "Muj hezky atribut",
                 "tags": ["toto jsou tagy"],
                 "granularity": "MINUTE",
-                "areRelationsValid": True,
-                "sortColumn": "string",
-                "sortDirection": "ASC",
-                "sourceColumn": "string",
-                "sourceColumnDataType": "INT",
+                "are_relations_valid": True,
+                "sort_column": "string",
+                "sort_Direction": "ASC",
+                "source_column": "string",
+                "source_column_data_type": "INT",
             },
             "relationships": {
                 "dataset": {"data": {"id": "string", "type": "dataset"}},
-                "defaultView": {"data": {"id": "string", "type": "label"}},
+                "default_view": {"data": {"id": "string", "type": "label"}},
                 "labels": {"data": [{"id": "string", "type": "label"}]},
             },
             "links": {"self": "string"},
@@ -30,25 +30,25 @@ ca_from_api = CatalogAttribute.from_api(
             {
                 "type": "dataset",
                 "id": "id1",
-                "meta": {"origin": {"originType": "NATIVE", "originId": "string"}},
+                "meta": {"origin": {"origin_type": "NATIVE", "origin_id": "string"}},
                 "attributes": {
                     "title": "string",
                     "description": "string",
                     "tags": ["string"],
                     "type": "NORMAL",
                     "grain": [{"id": "string", "type": "attribute"}],
-                    "referenceProperties": [
+                    "reference_properties": [
                         {
                             "identifier": {"id": "string", "type": "dataset"},
                             "multivalue": True,
-                            "sourceColumns": ["string"],
-                            "sourceColumnDataTypes": ["string"],
+                            "source_columns": ["string"],
+                            "source_column_data_types": ["string"],
                         }
                     ],
-                    "dataSourceTableId": "string",
+                    "data_source_table_id": "string",
                     "sql": {"statement": "string", "dataSourceId": "string"},
-                    "areRelationsValid": True,
-                    "workspaceDataFilterColumns": [{"name": "string", "dataType": "INT"}],
+                    "are_relations_valid": True,
+                    "workspace_data_filter_columns": [{"name": "string", "dataType": "INT"}],
                 },
                 "relationships": {
                     "attributes": {"data": [{"id": "string", "type": "attribute"}]},
@@ -60,22 +60,23 @@ ca_from_api = CatalogAttribute.from_api(
             {
                 "type": "label",
                 "id": "id1",
-                "meta": {"origin": {"originType": "NATIVE", "originId": "string"}},
+                "meta": {"origin": {"origin_type": "NATIVE", "origin_id": "string"}},
                 "attributes": {
                     "title": "string",
                     "description": "string",
                     "tags": ["string"],
                     "primary": True,
-                    "sourceColumn": "string",
-                    "sourceColumnDataType": "INT",
-                    "valueType": "TEXT",
-                    "areRelationsValid": True,
+                    "source_column": "string",
+                    "source_column_data_type": "INT",
+                    "value_type": "TEXT",
+                    "are_relations_valid": True,
                 },
                 "relationships": {"attribute": {"data": {"id": "string", "type": "attribute"}}},
                 "links": {"self": "string"},
             },
         ],
-    }
+    },
+    False,
 )
 
 print(ca_from_api)
@@ -88,6 +89,8 @@ print("--- Manual ---")
 ca_manual = CatalogAttribute(id="prd", attributes=TitledAttributes(title="MujPeknyAtribut-rucne vyrobeny"))
 print(ca_manual)
 
+print("--- to_snake_dict - auto ---")
+print(ca_from_api._get_snake_dict(oapi_compatible=False))
 
 print("--- to_dict - auto ---")
 print(ca_from_api.to_dict())
